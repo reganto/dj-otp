@@ -45,6 +45,7 @@ class OTPVerifyView(GenericAPIView):
                     username=serializer.validated_data.get("phone")
                 )
                 if userq.exists():
+                    # TODO: Extract this as a method
                     user = userq.first()
                     token, created = Token.objects.get_or_create(user=user)
                     return Response(
@@ -53,6 +54,7 @@ class OTPVerifyView(GenericAPIView):
                         ).data
                     )
                 else:
+                    # TODO: Extract this as a method
                     user = User.objects.create(
                         username=serializer.validated_data.get("phone")
                     )
