@@ -1,9 +1,7 @@
 from rest_framework.generics import GenericAPIView
-from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework import status
-from django.utils import timezone
 
 from otp.serializers import (
     ReqeustOTPSerializer,
@@ -30,40 +28,30 @@ class OTPRequestView(GenericAPIView):
 
 
 class OTPVerifyView(GenericAPIView):
+    def output_response(self, token, *, new_user):
+        return Response(
+            VerifyOptResponseSerializer({"token": token, "new_user": True}).data
+        )
+
     def post(self, request, *args, **kwargs):
         serializer = VerifyOptSerializer(data=request.data)
         if serializer.is_valid():
-            # TODO: convert this query to a queryset or manager
-            query = OTPRequest.objects.filter(
-                request_id=serializer.validated_data.get("request_id"),
-                phone=serializer.validated_data.get("phone"),
-                valid_until__gte=timezone.now(),
-            )
+            query = OTPRequest.objects.otp_request_exists(**serializer.validated_data)
             if query.exists():
                 User = get_user_model()
                 userq = User.objects.filter(
                     username=serializer.validated_data.get("phone")
                 )
                 if userq.exists():
-                    # TODO: Extract this as a method
                     user = userq.first()
-                    token, created = Token.objects.get_or_create(user=user)
-                    return Response(
-                        VerifyOptResponseSerializer(
-                            {"token": token, "new_user": False}
-                        ).data
-                    )
+                    token = OTPRequest.objects.generate_token(user=user)
+                    return self.output_response(token, new_user=False)
                 else:
-                    # TODO: Extract this as a method
                     user = User.objects.create(
                         username=serializer.validated_data.get("phone")
                     )
-                    token, created = Token.objects.get_or_create(user=user)
-                    return Response(
-                        VerifyOptResponseSerializer(
-                            {"token": token, "new_user": True}
-                        ).data
-                    )
+                    token = OTPRequest.objects.generate_token(user=user)
+                    return self.output_response(token, new_user=True)
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

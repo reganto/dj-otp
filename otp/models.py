@@ -13,6 +13,8 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.db import models
 
+from otp.model_managers import OtpManager
+
 # Create your models here.
 
 
@@ -69,3 +71,5 @@ class OTPRequest(models.Model):
     class Meta:
         verbose_name = _("One Time Password")
         verbose_name_plural = _("One Time Passwords")
+
+    objects = OtpManager()
