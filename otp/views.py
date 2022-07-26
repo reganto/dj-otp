@@ -2,6 +2,8 @@ from rest_framework.generics import GenericAPIView
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import transaction
+
 
 from otp.serializers import (
     ReqeustOTPSerializer,
@@ -32,7 +34,8 @@ class OTPVerifyView(GenericAPIView):
         return Response(
             VerifyOptResponseSerializer({"token": token, "new_user": True}).data
         )
-
+   
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         serializer = VerifyOptSerializer(data=request.data)
         if serializer.is_valid():
